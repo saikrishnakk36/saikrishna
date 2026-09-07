@@ -1,0 +1,50 @@
+{
+ "voice": "bf_emma",
+ "speed": 1.15,
+ "sample_rate": 24000,
+ "duration": 21.363,
+ "lines": [
+  {
+   "id": "hook",
+   "line": 1,
+   "text": "ECE graduate, still stuck in a non-core job?",
+   "start": 0.3,
+   "end": 2.955
+  },
+  {
+   "id": "chip",
+   "line": 2,
+   "text": "The chip in your phone was designed by engineers like you.",
+   "start": 3.305,
+   "end": 6.208
+  },
+  {
+   "id": "learn",
+   "line": 3,
+   "text": "At ChipXpert, learn VLSI on real Cadence tools, from ex-Intel engineers.",
+   "start": 6.508,
+   "end": 11.257
+  },
+  {
+   "id": "proof",
+   "line": 4,
+   "text": "AICTE approved, NSDC certified, 500+ alumni.",
+   "start": 11.557,
+   "end": 15.897
+  },
+  {
+   "id": "batch",
+   "line": 5,
+   "text": "New batches in Hyderabad and Bengaluru.",
+   "start": 16.197,
+   "end": 18.43
+  },
+  {
+   "id": "cta",
+   "line": 6,
+   "text": "Tap Learn More and book your free demo today.",
+   "start": 19.18,
+   "end": 21.363
+  }
+ ]
+}

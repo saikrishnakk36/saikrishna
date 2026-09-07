@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" width="1000" height="300">
+  <!-- Recreation of the ChipXpert wordmark. Drop the original at assets/logo.png for production; the renderer prefers it. -->
+  <defs>
+    <style>
+      @font-face { font-family: 'Saira Stencil One'; src: url('fonts/SairaStencilOne-400.ttf'); }
+      @font-face { font-family: 'Poppins'; src: url('fonts/Poppins-500.ttf'); font-weight: 500; }
+    </style>
+  </defs>
+  <g transform="translate(118 132)">
+    <path d="M 66 -78 A 100 100 0 1 0 66 78 L 52 62 A 80 80 0 1 1 52 -62 Z" fill="#F7941D"/>
+    <path d="M 12 -104 A 108 108 0 0 1 96 -78 L 82 -64 A 88 88 0 0 0 14 -84 Z" fill="#274C87"/>
+    <path d="M 12 104 A 108 108 0 0 0 96 78 L 82 64 A 88 88 0 0 1 14 84 Z" fill="#274C87"/>
+  </g>
+  <text x="232" y="190" font-family="'Saira Stencil One', 'Poppins', sans-serif" font-size="176" fill="#274C87" letter-spacing="-3">hipXpert</text>
+  <text x="600" y="268" font-family="'Poppins', sans-serif" font-weight="500" font-size="38" fill="#274C87" text-anchor="middle" letter-spacing="2">Think. Design. Optimize.</text>
+</svg>

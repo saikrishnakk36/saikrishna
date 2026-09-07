@@ -1,0 +1,24 @@
+1
+00:00:00,300 --> 00:00:03,141
+ECE graduate, still stuck in a non-core job?
+
+2
+00:00:03,491 --> 00:00:06,525
+The chip in your phone was designed by engineers like you.
+
+3
+00:00:06,825 --> 00:00:11,860
+At ChipXpert, learn VLSI on real Cadence tools, from ex-Intel engineers.
+
+4
+00:00:12,160 --> 00:00:16,832
+AICTE approved, NSDC certified, 500+ alumni.
+
+5
+00:00:17,132 --> 00:00:19,498
+New batches in Hyderabad and Bengaluru.
+
+6
+00:00:20,248 --> 00:00:22,551
+Tap Learn More and book your free demo today.
+
