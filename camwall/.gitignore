@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.env
+config/cameras.yaml
+media/
+*.log
+.DS_Store
+mobile/.expo/

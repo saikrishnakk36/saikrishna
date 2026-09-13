@@ -1,0 +1,25 @@
+{
+  "name": "camwall",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified multi-location CP Plus (Dahua OEM) CCTV wall - web, desktop and mobile",
+  "workspaces": [
+    "server",
+    "web",
+    "desktop"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm -w server run dev\" \"npm -w web run dev\"",
+    "build": "npm -w web run build",
+    "start": "npm -w server run start",
+    "desktop": "npm -w desktop run start",
+    "desktop:dist": "npm -w web run build && npm -w desktop run dist",
+    "test": "npm -w server run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
