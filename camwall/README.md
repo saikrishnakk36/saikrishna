@@ -63,6 +63,10 @@ cd mobile && npm install && npx expo start
 Scan the QR with Expo Go, enter the server URL and sign in. For a store build
 or a sideloadable APK, use `eas build`.
 
+Running two sites with a handful of cameras each? `config/cameras.2site-6cam.yaml`
+is a ready-to-fill config for that shape, and `docs/SETUP-2SITE.md` walks the
+whole deployment including the WireGuard configs.
+
 ## Configuration
 
 Everything lives in `config/cameras.yaml` (gitignored — the example file is the

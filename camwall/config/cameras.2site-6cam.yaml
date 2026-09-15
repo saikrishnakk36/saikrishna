@@ -1,0 +1,83 @@
+# CamWall - Avecas/ChipXpert deployment
+# 2 sites, 3 cameras each, both pulled centrally over WireGuard.
+#
+# TO USE:  cp config/cameras.2site-6cam.yaml config/cameras.yaml
+#          then fill in every <<< ... >>> marker below.
+#
+# At 3 sub-streams per site (~3 Mbps up), central pull is comfortable on any
+# fibre line. No federated branch server is needed at this size.
+
+server:
+  port: 8080
+  mediaRoot: ./media
+  idleTimeout: 30
+  # 6 cameras x 2 qualities, plus headroom. Raise only if you add sites.
+  maxConcurrentStreams: 16
+  jwtSecret: ${ENV:CAMWALL_JWT_SECRET}
+  sessionHours: 12
+
+# Generate each hash with:  npm -w server run hash -- 'the-password'
+users:
+  - username: admin
+    passwordHash: "<<< PASTE ADMIN HASH >>>"
+    role: admin                  # admin gets PTZ + /api/diagnostics
+
+  - username: viewer
+    passwordHash: "<<< PASTE VIEWER HASH >>>"
+    role: viewer                 # live view only, both sites
+
+  # Optional: a per-site login, e.g. for the Bengaluru centre manager.
+  # Site scoping is enforced server-side, not just hidden in the UI.
+  # - username: blr-manager
+  #   passwordHash: "<<< PASTE HASH >>>"
+  #   role: viewer
+  #   sites: [blr-bellandur]
+
+sites:
+  # ---------------------------------------------------------------------
+  # HYDERABAD - MADHAPUR
+  # ---------------------------------------------------------------------
+  - id: hyd-madhapur
+    name: Hyderabad - Madhapur
+    kind: direct
+    timezone: Asia/Kolkata
+    recorder:
+      # WireGuard IP of the DVR, or its LAN IP if the server sits on-site.
+      host: <<< HYD DVR IP, e.g. 10.20.1.10 >>>
+      rtspPort: 554
+      httpPort: 80
+      # A dedicated view-only DVR account - never the admin login.
+      username: camwall
+      password: ${ENV:CAMWALL_HYD_PASS}
+      vendor: cpplus
+    cameras:
+      # CP Plus DVR channels are 1-based and match the DVR's own grid order.
+      - { channel: 1, name: "<<< what channel 1 sees >>>" }
+      - { channel: 2, name: "<<< what channel 2 sees >>>" }
+      - { channel: 3, name: "<<< what channel 3 sees >>>" }
+
+  # ---------------------------------------------------------------------
+  # BENGALURU - BELLANDUR
+  # ---------------------------------------------------------------------
+  - id: blr-bellandur
+    name: Bengaluru - Bellandur
+    kind: direct
+    timezone: Asia/Kolkata
+    recorder:
+      host: <<< BLR DVR IP, e.g. 10.30.1.10 >>>
+      rtspPort: 554
+      httpPort: 80
+      username: camwall
+      password: ${ENV:CAMWALL_BLR_PASS}
+      vendor: cpplus
+    cameras:
+      - { channel: 1, name: "<<< what channel 1 sees >>>" }
+      - { channel: 2, name: "<<< what channel 2 sees >>>" }
+      - { channel: 3, name: "<<< what channel 3 sees >>>" }
+
+# ---------------------------------------------------------------------------
+# Adding a third site later (Penang, a new ChipXpert centre) is one more
+# block. Keep it `kind: direct` while the camera count stays small; switch it
+# to `kind: remote` only if that site's upload cannot carry
+# (cameras x 1 Mbps) continuously - see README "Connecting your sites".
+# ---------------------------------------------------------------------------
