@@ -60,15 +60,15 @@ wss.on('connection', (ws, req) => {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type, payload }));
   };
   const onStream = send('stream');
-  const onSite = send('site');
+  const onRecorder = send('recorder');
   const onCamera = send('camera');
   streams.on('status', onStream);
-  monitor.on('site', onSite);
+  monitor.on('recorder', onRecorder);
   monitor.on('camera', onCamera);
   send('snapshot')({ streams: streams.list(), ...monitor.snapshotState() });
   ws.on('close', () => {
     streams.off('status', onStream);
-    monitor.off('site', onSite);
+    monitor.off('recorder', onRecorder);
     monitor.off('camera', onCamera);
   });
 });
@@ -76,7 +76,11 @@ wss.on('connection', (ws, req) => {
 server.listen(config.server.port, () => {
   console.log(`CamWall server on http://localhost:${config.server.port}`);
   console.log(`  config : ${config.file}`);
-  console.log(`  sites  : ${config.sites.length}  cameras: ${config.cameras.length}`);
+  console.log(
+    `  sites  : ${config.sites.length}` +
+      `  recorders: ${config.recorders().length}` +
+      `  cameras: ${config.cameras.length}`,
+  );
   if (fs.existsSync(webDist)) console.log('  web UI : served from web/dist');
 });
 

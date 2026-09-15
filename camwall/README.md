@@ -63,9 +63,12 @@ cd mobile && npm install && npx expo start
 Scan the QR with Expo Go, enter the server URL and sign in. For a store build
 or a sideloadable APK, use `eas build`.
 
-Running two sites with a handful of cameras each? `config/cameras.2site-6cam.yaml`
-is a ready-to-fill config for that shape, and `docs/SETUP-2SITE.md` walks the
-whole deployment including the WireGuard configs.
+A site can hold several recorders — three DVRs on one campus is one site with
+three entries under `recorders:`, which keeps the site as a single click in the
+UI while still reporting per-DVR health. `config/cameras.2site-6dvr.yaml` is a
+ready-to-fill config for two sites with three DVRs each, and
+`docs/SETUP-2SITE-6DVR.md` walks that deployment end to end, WireGuard
+included.
 
 ## Configuration
 
@@ -80,8 +83,8 @@ recorder:
   vendor: cpplus
 ```
 
-Camera ids are `<siteId>:<channel>`, so renaming a camera never breaks layouts,
-bookmarks or ACLs.
+Camera ids are `<siteId>:<recorderId>:<channel>`, so renaming a camera — or
+adding a fourth DVR to a site — never breaks layouts, bookmarks or ACLs.
 
 **Users and roles.** `viewer` can watch; `admin` additionally gets PTZ and
 `/api/diagnostics`. A user can be pinned to specific sites with `sites: [...]`,

@@ -35,6 +35,7 @@ export default function App() {
   const [rotate, setRotate] = useState(false);
   const [error, setError] = useState(null);
   const rootRef = useRef(null);
+  const refreshRef = useRef(null);
 
   // ---- data -------------------------------------------------------------
   const refresh = useCallback(async () => {
@@ -48,6 +49,10 @@ export default function App() {
       else setError(err.message);
     }
   }, []);
+
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
 
   useEffect(() => {
     if (!user) return;
@@ -68,8 +73,22 @@ export default function App() {
         setCameras((prev) =>
           prev.map((c) => (c.id === payload.cameraId ? { ...c, health: payload } : c)),
         );
-      } else if (type === 'site') {
-        setSites((prev) => prev.map((s) => (s.id === payload.siteId ? { ...s, health: payload } : s)));
+      } else if (type === 'recorder') {
+        // One DVR changing state changes its site's rollup - refetch rather
+        // than recomputing the aggregate in two places.
+        setSites((prev) =>
+          prev.map((s) =>
+            s.id === payload.siteId
+              ? {
+                  ...s,
+                  recorders: s.recorders?.map((r) =>
+                    r.id === payload.recorderId ? { ...r, health: payload } : r,
+                  ),
+                }
+              : s,
+          ),
+        );
+        refreshRef.current?.();
       }
     });
   }, [user]);

@@ -16,12 +16,11 @@ const RTSP_PATHS = {
 };
 
 /**
- * Build the RTSP URL for a camera.
+ * Build the RTSP URL for a camera on a given recorder.
  * quality 'sub' => subtype=1 (low-res, used by the grid)
  * quality 'main' => subtype=0 (full-res, used fullscreen / for recording)
  */
-export function rtspUrl(site, camera, quality = 'sub') {
-  const rec = site.recorder ?? {};
+export function rtspUrl(rec = {}, camera, quality = 'sub') {
   const vendor = rec.vendor ?? 'cpplus';
   const subtype = quality === 'main' ? 0 : 1;
   const host = camera.host ?? rec.host;
@@ -34,8 +33,8 @@ export function rtspUrl(site, camera, quality = 'sub') {
 }
 
 /** Same URL with the password masked - safe for logs and API responses. */
-export function safeRtspUrl(site, camera, quality = 'sub') {
-  return rtspUrl(site, camera, quality).replace(/:\/\/([^:]+):[^@]*@/, '://$1:***@');
+export function safeRtspUrl(rec, camera, quality = 'sub') {
+  return rtspUrl(rec, camera, quality).replace(/:\/\/([^:]+):[^@]*@/, '://$1:***@');
 }
 
 function digestHeader({ username, password, method, uri, wwwAuth, nc = '00000001' }) {
@@ -61,8 +60,7 @@ function digestHeader({ username, password, method, uri, wwwAuth, nc = '00000001
  * GET a CGI endpoint with HTTP Digest auth (Dahua/CP Plus require digest).
  * Resolves { status, headers, body:Buffer }.
  */
-export function cgiRequest(site, camera, uri, { method = 'GET', timeout = 8000 } = {}) {
-  const rec = site.recorder ?? {};
+export function cgiRequest(rec = {}, camera, uri, { method = 'GET', timeout = 8000 } = {}) {
   const host = camera?.host ?? rec.host;
   const port = rec.httpPort ?? 80;
 
@@ -99,8 +97,8 @@ export function cgiRequest(site, camera, uri, { method = 'GET', timeout = 8000 }
 }
 
 /** JPEG snapshot straight off the recorder - cheap enough to poll for previews. */
-export async function snapshot(site, camera) {
-  const res = await cgiRequest(site, camera, `/cgi-bin/snapshot.cgi?channel=${camera.channel}`);
+export async function snapshot(rec, camera) {
+  const res = await cgiRequest(rec, camera, `/cgi-bin/snapshot.cgi?channel=${camera.channel}`);
   if (res.status !== 200) throw new Error(`snapshot failed: HTTP ${res.status}`);
   return res.body;
 }
@@ -112,30 +110,30 @@ const PTZ_CODES = {
 };
 
 /** action: 'start' | 'stop'; direction: key of PTZ_CODES; speed 1-8 */
-export async function ptz(site, camera, { action, direction, speed = 4 }) {
+export async function ptz(rec, camera, { action, direction, speed = 4 }) {
   const code = PTZ_CODES[String(direction).toLowerCase()];
   if (!code) throw new Error(`unknown PTZ direction: ${direction}`);
   const uri =
     `/cgi-bin/ptz.cgi?action=${action}&channel=${camera.channel}` +
     `&code=${code}&arg1=0&arg2=${speed}&arg3=0`;
-  const res = await cgiRequest(site, camera, uri);
+  const res = await cgiRequest(rec, camera, uri);
   if (res.status !== 200) throw new Error(`PTZ failed: HTTP ${res.status}`);
   return res.body.toString().trim();
 }
 
 /** Go to a stored preset. */
-export async function ptzPreset(site, camera, preset) {
+export async function ptzPreset(rec, camera, preset) {
   const uri =
     `/cgi-bin/ptz.cgi?action=start&channel=${camera.channel}` +
     `&code=GotoPreset&arg1=0&arg2=${Number(preset)}&arg3=0`;
-  const res = await cgiRequest(site, camera, uri);
+  const res = await cgiRequest(rec, camera, uri);
   if (res.status !== 200) throw new Error(`preset failed: HTTP ${res.status}`);
   return res.body.toString().trim();
 }
 
 /** Device identity - also doubles as a credentials/reachability probe. */
-export async function deviceInfo(site) {
-  const res = await cgiRequest(site, null, '/cgi-bin/magicBox.cgi?action=getSystemInfo');
+export async function deviceInfo(rec) {
+  const res = await cgiRequest(rec, null, '/cgi-bin/magicBox.cgi?action=getSystemInfo');
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
   return Object.fromEntries(
     res.body

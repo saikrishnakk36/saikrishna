@@ -122,7 +122,7 @@ export class StreamManager extends EventEmitter {
           { status: 503 },
         );
       }
-      const site = this.config.site(camera.siteId);
+      const rec = this.config.recorderFor(camera) ?? {};
       const dir = path.join(this.config.server.mediaRoot, key);
       fs.rmSync(dir, { recursive: true, force: true });
       fs.mkdirSync(dir, { recursive: true });
@@ -133,8 +133,8 @@ export class StreamManager extends EventEmitter {
         quality,
         dir,
         // `source` lets a camera bypass the CP Plus URL scheme entirely.
-        url: camera.source ?? rtspUrl(site, camera, quality),
-        safeUrl: camera.source ?? safeRtspUrl(site, camera, quality),
+        url: camera.source ?? rtspUrl(rec, camera, quality),
+        safeUrl: camera.source ?? safeRtspUrl(rec, camera, quality),
         format: camera.sourceFormat ?? null,
         audio: camera.audio,
         leases: new Map(),

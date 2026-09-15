@@ -34,29 +34,57 @@ function configPath() {
 }
 
 /**
- * Flatten sites+cameras into a stable, addressable camera list.
- * Camera id is `<siteId>:<channel>` so it survives renames and reorders.
+ * A site can hold several recorders - a campus with three DVRs is one site,
+ * not three. Recorders are always normalized to a list so the rest of the
+ * server has one shape to handle.
+ *
+ * The single-recorder shorthand (`recorder:` plus site-level `cameras:`)
+ * stays valid and becomes a lone recorder with the id `main`.
+ */
+function normalizeRecorders(site) {
+  if (Array.isArray(site.recorders)) {
+    return site.recorders.map((rec, i) => ({
+      ...rec,
+      id: rec.id ?? `dvr${i + 1}`,
+      name: rec.name ?? `DVR ${i + 1}`,
+      cameras: rec.cameras ?? [],
+    }));
+  }
+  if (site.recorder) {
+    return [{ ...site.recorder, id: 'main', name: site.name, cameras: site.cameras ?? [] }];
+  }
+  return [];
+}
+
+/**
+ * Flatten sites+recorders+cameras into a stable, addressable camera list.
+ * Camera id is `<siteId>:<recorderId>:<channel>` - it survives renames,
+ * reorders, and adding a recorder to an existing site.
  */
 function buildCameras(sites) {
   const cameras = [];
   for (const site of sites) {
     if (site.kind === 'remote') continue; // federated cameras are fetched at runtime
-    for (const cam of site.cameras ?? []) {
-      cameras.push({
-        id: `${site.id}:${cam.channel}`,
-        siteId: site.id,
-        siteName: site.name,
-        channel: cam.channel,
-        name: cam.name ?? `Channel ${cam.channel}`,
-        ptz: Boolean(cam.ptz),
-        enabled: cam.enabled !== false,
-        host: cam.host ?? site.recorder?.host,
-        audio: Boolean(cam.audio),
-        // Optional escape hatch: any ffmpeg-readable input, for cameras that
-        // do not follow the CP Plus URL scheme.
-        source: cam.source ?? null,
-        sourceFormat: cam.sourceFormat ?? null,
-      });
+    for (const rec of site.recorders) {
+      for (const cam of rec.cameras) {
+        cameras.push({
+          id: `${site.id}:${rec.id}:${cam.channel}`,
+          siteId: site.id,
+          siteName: site.name,
+          recorderId: rec.id,
+          recorderName: rec.name,
+          channel: cam.channel,
+          name: cam.name ?? `Channel ${cam.channel}`,
+          ptz: Boolean(cam.ptz),
+          enabled: cam.enabled !== false,
+          host: cam.host ?? rec.host,
+          audio: Boolean(cam.audio),
+          // Optional escape hatch: any ffmpeg-readable input, for cameras that
+          // do not follow the CP Plus URL scheme.
+          source: cam.source ?? null,
+          sourceFormat: cam.sourceFormat ?? null,
+        });
+      }
     }
   }
   return cameras;
@@ -75,7 +103,7 @@ export function loadConfig({ force = false } = {}) {
   if (process.env.CAMWALL_JWT_SECRET) server.jwtSecret = process.env.CAMWALL_JWT_SECRET;
   server.mediaRoot = path.resolve(ROOT, server.mediaRoot);
 
-  const sites = (raw.sites ?? []).map((s) => ({ ...s, cameras: s.cameras ?? [] }));
+  const sites = (raw.sites ?? []).map((s) => ({ ...s, recorders: normalizeRecorders(s) }));
 
   cached = {
     file,
@@ -85,6 +113,15 @@ export function loadConfig({ force = false } = {}) {
     cameras: buildCameras(sites),
     site: (id) => sites.find((s) => s.id === id),
     camera: (id) => cached.cameras.find((c) => c.id === id),
+    /** The recorder a camera actually lives on - what speaks RTSP and CGI. */
+    recorder: (siteId, recorderId) =>
+      sites.find((s) => s.id === siteId)?.recorders.find((r) => r.id === recorderId),
+    recorderFor: (camera) => cached.recorder(camera.siteId, camera.recorderId),
+    /** Every recorder across every direct site, for health probing. */
+    recorders: () =>
+      sites
+        .filter((s) => s.kind !== 'remote')
+        .flatMap((s) => s.recorders.map((r) => ({ ...r, siteId: s.id, siteName: s.name }))),
   };
 
   if (server.jwtSecret === DEFAULTS.jwtSecret && process.env.NODE_ENV === 'production') {

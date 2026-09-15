@@ -38,6 +38,14 @@ users:
 # ---------------------------------------------------------------------------
 # kind: direct  -> this server can reach the recorder's IP (LAN, or via VPN)
 # kind: remote  -> another CamWall server at a branch; this one federates it
+#
+# A site holds however many recorders it has. Use `recorders:` (a list) when a
+# site has more than one DVR/NVR - see config/cameras.2site-6dvr.yaml for a
+# worked two-site, six-DVR example. The `recorder:` + site-level `cameras:`
+# shorthand below stays valid for a site with exactly one recorder.
+#
+# Camera ids are `<siteId>:<recorderId>:<channel>`; the shorthand uses the
+# recorder id `main`.
 # ---------------------------------------------------------------------------
 sites:
   - id: hyd-madhapur

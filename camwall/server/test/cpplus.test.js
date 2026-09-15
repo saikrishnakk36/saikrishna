@@ -4,38 +4,42 @@ import { rtspUrl, safeRtspUrl } from '../src/lib/cpplus.js';
 import { login, canSee } from '../src/lib/auth.js';
 import bcrypt from 'bcryptjs';
 
-const site = {
-  id: 's1',
-  recorder: { host: '10.0.0.5', rtspPort: 554, username: 'admin', password: 'p@ss word', vendor: 'cpplus' },
+const rec = {
+  id: 'dvr1',
+  host: '10.0.0.5',
+  rtspPort: 554,
+  username: 'admin',
+  password: 'p@ss word',
+  vendor: 'cpplus',
 };
 const camera = { channel: 3 };
 
 test('CP Plus RTSP URLs use the Dahua realmonitor path', () => {
   assert.equal(
-    rtspUrl(site, camera, 'main'),
+    rtspUrl(rec, camera, 'main'),
     'rtsp://admin:p%40ss%20word@10.0.0.5:554/cam/realmonitor?channel=3&subtype=0',
   );
   // The grid must never pull the main stream.
-  assert.match(rtspUrl(site, camera, 'sub'), /subtype=1$/);
+  assert.match(rtspUrl(rec, camera, 'sub'), /subtype=1$/);
 });
 
 test('credentials are URL-encoded so special characters do not break the URL', () => {
-  const url = rtspUrl({ ...site, recorder: { ...site.recorder, password: 'a/b@c:d' } }, camera);
+  const url = rtspUrl({ ...rec, password: 'a/b@c:d' }, camera);
   assert.ok(url.includes('a%2Fb%40c%3Ad'));
 });
 
 test('Hikvision channels map to the Streaming path', () => {
-  const hik = { ...site, recorder: { ...site.recorder, vendor: 'hikvision' } };
+  const hik = { ...rec, vendor: 'hikvision' };
   assert.match(rtspUrl(hik, camera, 'main'), /\/Streaming\/Channels\/301$/);
   assert.match(rtspUrl(hik, camera, 'sub'), /\/Streaming\/Channels\/302$/);
 });
 
 test('a per-camera host override wins over the recorder host', () => {
-  assert.match(rtspUrl(site, { channel: 1, host: '10.0.0.99' }), /@10\.0\.0\.99:554/);
+  assert.match(rtspUrl(rec, { channel: 1, host: '10.0.0.99' }), /@10\.0\.0\.99:554/);
 });
 
 test('the masked URL never leaks the password', () => {
-  const masked = safeRtspUrl(site, camera);
+  const masked = safeRtspUrl(rec, camera);
   assert.ok(!masked.includes('p%40ss'));
   assert.match(masked, /admin:\*\*\*@/);
 });

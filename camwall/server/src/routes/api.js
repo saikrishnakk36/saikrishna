@@ -29,7 +29,15 @@ export function apiRouter({ config, streams, monitor }) {
           kind: s.kind ?? 'direct',
           timezone: s.timezone ?? null,
           cameraCount: config.cameras.filter((c) => c.siteId === s.id && c.enabled).length,
-          health: state.sites[s.id] ?? { online: null },
+          // A campus with several DVRs reports each one, so a single dead
+          // recorder is visible instead of hidden behind its siblings.
+          recorders: s.recorders.map((r) => ({
+            id: r.id,
+            name: r.name,
+            cameraCount: r.cameras.filter((c) => c.enabled !== false).length,
+            health: state.recorders[`${s.id}:${r.id}`] ?? { online: null },
+          })),
+          health: monitor.siteHealth(s.id),
         })),
     );
   });
@@ -40,6 +48,8 @@ export function apiRouter({ config, streams, monitor }) {
       id: c.id,
       siteId: c.siteId,
       siteName: c.siteName,
+      recorderId: c.recorderId,
+      recorderName: c.recorderName,
       channel: c.channel,
       name: c.name,
       ptz: c.ptz,
@@ -95,7 +105,7 @@ export function apiRouter({ config, streams, monitor }) {
     const cam = config.camera(req.params.cameraId);
     if (!cam || !canSee(req.user, cam.siteId)) return res.status(404).json({ error: 'camera not found' });
     try {
-      const jpeg = await snapshot(config.site(cam.siteId), cam);
+      const jpeg = await snapshot(config.recorderFor(cam), cam);
       res.set('content-type', 'image/jpeg').set('cache-control', 'no-store').send(jpeg);
     } catch (err) {
       res.status(502).json({ error: err.message });
@@ -107,12 +117,12 @@ export function apiRouter({ config, streams, monitor }) {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'PTZ requires the admin role' });
     const cam = config.camera(req.params.cameraId);
     if (!cam || !canSee(req.user, cam.siteId)) return res.status(404).json({ error: 'camera not found' });
-    const site = config.site(cam.siteId);
+    const rec = config.recorderFor(cam);
     try {
       const { preset, direction, action = 'start', speed } = req.body ?? {};
       const out = preset != null
-        ? await ptzPreset(site, cam, preset)
-        : await ptz(site, cam, { action, direction, speed });
+        ? await ptzPreset(rec, cam, preset)
+        : await ptz(rec, cam, { action, direction, speed });
       res.json({ ok: true, response: out });
     } catch (err) {
       res.status(502).json({ error: err.message });
@@ -130,11 +140,12 @@ export function apiRouter({ config, streams, monitor }) {
         maxConcurrentStreams: config.server.maxConcurrentStreams,
         idleTimeout: config.server.idleTimeout,
       },
-      sites: state.sites,
+      recorders: state.recorders,
       cameras: visibleCameras(config, req.user).map((c) => ({
         id: c.id,
         name: c.name,
-        rtsp: safeRtspUrl(config.site(c.siteId), c, 'sub'),
+        recorder: `${c.siteId}/${c.recorderId}`,
+        rtsp: safeRtspUrl(config.recorderFor(c), c, 'sub'),
         health: state.cameras[c.id] ?? { online: null },
       })),
     });

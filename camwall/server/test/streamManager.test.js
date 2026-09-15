@@ -14,8 +14,9 @@ import path from 'node:path';
 import { StreamManager } from '../src/lib/streamManager.js';
 
 const CAMERA = {
-  id: 'test:1',
+  id: 'test:dvr1:1',
   siteId: 'test',
+  recorderId: 'dvr1',
   channel: 1,
   name: 'Test pattern',
   source: 'testsrc=size=320x240:rate=15',
@@ -31,7 +32,8 @@ function makeConfig(overrides = {}) {
       maxConcurrentStreams: 4,
       ...overrides,
     },
-    site: () => ({ id: 'test', recorder: {} }),
+    site: () => ({ id: 'test', recorders: [{ id: 'dvr1' }] }),
+    recorderFor: () => ({ id: 'dvr1' }),
     camera: () => CAMERA,
     cameras: [CAMERA],
   };
@@ -53,9 +55,9 @@ test('a stream starts, goes live and writes a playable HLS playlist', async (t) 
   t.after(() => streams.shutdown());
 
   const info = await streams.acquire(CAMERA, 'sub', 'viewer-1');
-  assert.equal(info.cameraId, 'test:1');
+  assert.equal(info.cameraId, 'test:dvr1:1');
   assert.equal(info.viewers, 1);
-  assert.equal(info.playlist, '/media/test:1__sub/index.m3u8');
+  assert.equal(info.playlist, '/media/test:dvr1:1__sub/index.m3u8');
 
   const live = await waitFor(() => {
     const s = streams.list()[0];
@@ -64,7 +66,7 @@ test('a stream starts, goes live and writes a playable HLS playlist', async (t) 
   assert.equal(live.status, 'live');
 
   const playlist = fs.readFileSync(
-    path.join(config.server.mediaRoot, 'test:1__sub', 'index.m3u8'),
+    path.join(config.server.mediaRoot, 'test:dvr1:1__sub', 'index.m3u8'),
     'utf8',
   );
   assert.match(playlist, /#EXTM3U/);
@@ -81,11 +83,11 @@ test('the last viewer leaving tears the stream down', async (t) => {
   await streams.acquire(CAMERA, 'sub', 'viewer-1');
   await waitFor(() => streams.list()[0]?.status === 'live');
 
-  streams.release('test:1', 'sub', 'viewer-1');
+  streams.release('test:dvr1:1', 'sub', 'viewer-1');
   await waitFor(() => streams.list().length === 0);
 
   assert.equal(streams.list().length, 0);
-  assert.ok(!fs.existsSync(path.join(config.server.mediaRoot, 'test:1__sub')));
+  assert.ok(!fs.existsSync(path.join(config.server.mediaRoot, 'test:dvr1:1__sub')));
 });
 
 test('two viewers share one ffmpeg process', async (t) => {
@@ -100,7 +102,7 @@ test('two viewers share one ffmpeg process', async (t) => {
   assert.equal(second.viewers, 2);
 
   // One viewer leaving must not disturb the other.
-  streams.release('test:1', 'sub', 'viewer-1');
+  streams.release('test:dvr1:1', 'sub', 'viewer-1');
   await new Promise((r) => setTimeout(r, 2500));
   assert.equal(streams.list().length, 1);
 });
@@ -113,7 +115,7 @@ test('the concurrent stream limit is enforced', async (t) => {
   await streams.acquire(CAMERA, 'sub', 'viewer-1');
   await waitFor(() => streams.list()[0]?.status === 'live');
 
-  const other = { ...CAMERA, id: 'test:2', channel: 2 };
+  const other = { ...CAMERA, id: 'test:dvr1:2', channel: 2 };
   await assert.rejects(() => streams.acquire(other, 'sub', 'viewer-2'), /Stream limit reached/);
 });
 
@@ -126,7 +128,7 @@ test('renewing a lease keeps an otherwise idle stream alive', async (t) => {
   await waitFor(() => streams.list()[0]?.status === 'live');
 
   for (let i = 0; i < 4; i += 1) {
-    assert.equal(streams.renew('test:1', 'sub', 'viewer-1'), true);
+    assert.equal(streams.renew('test:dvr1:1', 'sub', 'viewer-1'), true);
     await new Promise((r) => setTimeout(r, 700));
   }
   assert.equal(streams.list().length, 1);
