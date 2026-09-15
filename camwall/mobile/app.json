@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "CamWall",
+    "slug": "camwall",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b0f14",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.camwall.mobile",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.camwall.mobile",
+      "usesCleartextTraffic": true
+    }
+  }
+}

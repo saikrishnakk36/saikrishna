@@ -1,0 +1,19 @@
+services:
+  camwall:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      CAMWALL_JWT_SECRET: ${CAMWALL_JWT_SECRET:?set CAMWALL_JWT_SECRET in .env}
+      CAMWALL_HYD_PASS: ${CAMWALL_HYD_PASS:-}
+      CAMWALL_BLR_PASS: ${CAMWALL_BLR_PASS:-}
+      CAMWALL_PENANG_PASS: ${CAMWALL_PENANG_PASS:-}
+    volumes:
+      - ./config:/app/config:ro
+      # HLS segments are rewritten every second - a tmpfs saves the disk.
+      - type: tmpfs
+        target: /app/media
+        tmpfs:
+          size: 512m

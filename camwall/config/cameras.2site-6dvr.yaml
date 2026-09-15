@@ -1,0 +1,135 @@
+# CamWall - Avecas / ChipXpert deployment
+# 2 sites, 3 CP Plus DVRs at each, all pulled centrally over WireGuard.
+#
+# TO USE:  cp config/cameras.2site-6dvr.yaml config/cameras.yaml
+#          then fill in every <<< ... >>> marker.
+#
+# A site holds as many recorders as it has. Camera ids are
+# `<siteId>:<recorderId>:<channel>`, so adding a fourth DVR later never
+# disturbs the ids of the first three.
+
+server:
+  port: 8080
+  mediaRoot: ./media
+  idleTimeout: 30
+  # The cap is on SIMULTANEOUS streams, not cameras - only tiles on screen
+  # run. 25 covers the largest layout plus an HD fullscreen view.
+  maxConcurrentStreams: 25
+  jwtSecret: ${ENV:CAMWALL_JWT_SECRET}
+  sessionHours: 12
+
+# Generate each hash with:  npm -w server run hash -- 'the-password'
+users:
+  - username: admin
+    passwordHash: "<<< PASTE ADMIN HASH >>>"
+    role: admin                    # PTZ + /api/diagnostics
+
+  - username: viewer
+    passwordHash: "<<< PASTE VIEWER HASH >>>"
+    role: viewer
+
+  # Site scoping is enforced server-side, not just hidden in the UI.
+  # - username: blr-manager
+  #   passwordHash: "<<< PASTE HASH >>>"
+  #   role: viewer
+  #   sites: [blr-bellandur]
+
+sites:
+  # =====================================================================
+  # HYDERABAD - MADHAPUR  (3 DVRs)
+  # =====================================================================
+  - id: hyd-madhapur
+    name: Hyderabad - Madhapur
+    kind: direct
+    timezone: Asia/Kolkata
+    recorders:
+      # Give each DVR a short, stable id - it becomes part of every camera
+      # id on it, so pick something that will not need renaming.
+      - id: dvr1
+        name: <<< e.g. Ground Floor >>>
+        host: <<< DVR 1 IP, e.g. 10.20.1.11 >>>
+        rtspPort: 554
+        httpPort: 80
+        username: camwall           # dedicated view-only DVR account
+        password: ${ENV:CAMWALL_HYD_DVR1_PASS}
+        vendor: cpplus
+        cameras:
+          # One line per channel in use. CP Plus channels are 1-based and
+          # match the DVR's own grid order. List only connected channels.
+          - { channel: 1, name: "<<< what channel 1 sees >>>" }
+          - { channel: 2, name: "<<< ... >>>" }
+          - { channel: 3, name: "<<< ... >>>" }
+          - { channel: 4, name: "<<< ... >>>" }
+
+      - id: dvr2
+        name: <<< e.g. First Floor >>>
+        host: <<< DVR 2 IP, e.g. 10.20.1.12 >>>
+        rtspPort: 554
+        httpPort: 80
+        username: camwall
+        password: ${ENV:CAMWALL_HYD_DVR2_PASS}
+        vendor: cpplus
+        cameras:
+          - { channel: 1, name: "<<< ... >>>" }
+          - { channel: 2, name: "<<< ... >>>" }
+
+      - id: dvr3
+        name: <<< e.g. Parking / Perimeter >>>
+        host: <<< DVR 3 IP, e.g. 10.20.1.13 >>>
+        rtspPort: 554
+        httpPort: 80
+        username: camwall
+        password: ${ENV:CAMWALL_HYD_DVR3_PASS}
+        vendor: cpplus
+        cameras:
+          - { channel: 1, name: "<<< ... >>>" }
+          - { channel: 2, name: "<<< ... >>>", ptz: true }   # ptz: true enables the pad
+
+  # =====================================================================
+  # BENGALURU - BELLANDUR  (3 DVRs)
+  # =====================================================================
+  - id: blr-bellandur
+    name: Bengaluru - Bellandur
+    kind: direct
+    timezone: Asia/Kolkata
+    recorders:
+      - id: dvr1
+        name: <<< e.g. Reception & Classrooms >>>
+        host: <<< DVR 1 IP, e.g. 10.30.1.11 >>>
+        rtspPort: 554
+        httpPort: 80
+        username: camwall
+        password: ${ENV:CAMWALL_BLR_DVR1_PASS}
+        vendor: cpplus
+        cameras:
+          - { channel: 1, name: "<<< ... >>>" }
+          - { channel: 2, name: "<<< ... >>>" }
+
+      - id: dvr2
+        name: <<< e.g. Lab >>>
+        host: <<< DVR 2 IP, e.g. 10.30.1.12 >>>
+        rtspPort: 554
+        httpPort: 80
+        username: camwall
+        password: ${ENV:CAMWALL_BLR_DVR2_PASS}
+        vendor: cpplus
+        cameras:
+          - { channel: 1, name: "<<< ... >>>" }
+          - { channel: 2, name: "<<< ... >>>" }
+
+      - id: dvr3
+        name: <<< e.g. Entrance >>>
+        host: <<< DVR 3 IP, e.g. 10.30.1.13 >>>
+        rtspPort: 554
+        httpPort: 80
+        username: camwall
+        password: ${ENV:CAMWALL_BLR_DVR3_PASS}
+        vendor: cpplus
+        cameras:
+          - { channel: 1, name: "<<< ... >>>" }
+          - { channel: 2, name: "<<< ... >>>" }
+
+# ---------------------------------------------------------------------------
+# If every DVR at a site shares one password, point them all at the same env
+# var. Separate vars are safer: a leaked credential then costs you one DVR.
+# ---------------------------------------------------------------------------

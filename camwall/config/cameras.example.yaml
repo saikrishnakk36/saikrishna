@@ -1,0 +1,107 @@
+# CamWall configuration
+# Copy to config/cameras.yaml and edit. Never commit the real file (gitignored).
+#
+# CP Plus recorders/cameras run Dahua OEM firmware, so:
+#   RTSP main stream : rtsp://user:pass@host:554/cam/realmonitor?channel=N&subtype=0
+#   RTSP sub  stream : rtsp://user:pass@host:554/cam/realmonitor?channel=N&subtype=1
+#   Snapshot (CGI)   : http://host/cgi-bin/snapshot.cgi?channel=N   (HTTP Digest auth)
+# The grid always uses the SUB stream (D1/CIF, ~512 kbps). Fullscreen switches to
+# the MAIN stream. This is what makes 40+ cameras on one screen survivable.
+
+server:
+  port: 8080
+  # Where transcoded HLS segments are written. Use tmpfs/ramdisk in production.
+  mediaRoot: ./media
+  # Seconds a stream keeps running after the last viewer disconnects.
+  idleTimeout: 30
+  # Hard cap on simultaneous ffmpeg processes. ~1 core per 4 copy-mode streams.
+  maxConcurrentStreams: 32
+  # JWT signing secret. MUST be overridden via CAMWALL_JWT_SECRET in production.
+  jwtSecret: change-me-in-production
+  sessionHours: 12
+
+# Users who can log into the wall. Passwords are bcrypt hashes.
+# Generate with:  npm -w server run hash -- 'yourpassword'
+users:
+  - username: admin
+    # password: admin123  <-- change this immediately
+    passwordHash: "$2a$10$sCVTJKUJG703WMv8X/OBQO5FTAeQCrSoaGqaOFfuULR9YHVS7VDZW"
+    role: admin
+  - username: viewer
+    passwordHash: "$2a$10$sCVTJKUJG703WMv8X/OBQO5FTAeQCrSoaGqaOFfuULR9YHVS7VDZW"
+    role: viewer
+    # Restrict a user to specific sites (omit for all)
+    # sites: [hyd-madhapur]
+
+# ---------------------------------------------------------------------------
+# SITES
+# ---------------------------------------------------------------------------
+# kind: direct  -> this server can reach the recorder's IP (LAN, or via VPN)
+# kind: remote  -> another CamWall server at a branch; this one federates it
+#
+# A site holds however many recorders it has. Use `recorders:` (a list) when a
+# site has more than one DVR/NVR - see config/cameras.2site-6dvr.yaml for a
+# worked two-site, six-DVR example. The `recorder:` + site-level `cameras:`
+# shorthand below stays valid for a site with exactly one recorder.
+#
+# Camera ids are `<siteId>:<recorderId>:<channel>`; the shorthand uses the
+# recorder id `main`.
+# ---------------------------------------------------------------------------
+sites:
+  - id: hyd-madhapur
+    name: Hyderabad - Madhapur
+    kind: direct
+    timezone: Asia/Kolkata
+    recorder:
+      host: 10.20.1.10          # NVR/DVR LAN IP (or WireGuard IP)
+      rtspPort: 554
+      httpPort: 80
+      username: admin
+      # Prefer env vars over inline passwords: ${ENV:CAMWALL_HYD_PASS}
+      password: ${ENV:CAMWALL_HYD_PASS}
+      vendor: cpplus            # cpplus | dahua | hikvision | generic
+    cameras:
+      - { channel: 1, name: "Reception" }
+      - { channel: 2, name: "Lab Entry" }
+      - { channel: 3, name: "Server Room", ptz: false }
+      - { channel: 4, name: "Parking" }
+
+  - id: blr-bellandur
+    name: Bengaluru - Bellandur
+    kind: direct
+    timezone: Asia/Kolkata
+    recorder:
+      host: 10.30.1.10
+      rtspPort: 554
+      httpPort: 80
+      username: admin
+      password: ${ENV:CAMWALL_BLR_PASS}
+      vendor: cpplus
+    cameras:
+      - { channel: 1, name: "Front Desk" }
+      - { channel: 2, name: "Classroom A" }
+      - { channel: 3, name: "Classroom B" }
+
+  # A branch too far / too slow for central pull: run CamWall there and federate.
+  - id: penang
+    name: Penang Office
+    kind: remote
+    timezone: Asia/Kuala_Lumpur
+    remote:
+      baseUrl: https://camwall.penang.example.com
+      username: relay
+      password: ${ENV:CAMWALL_PENANG_PASS}
+
+  # Cameras that do not follow the CP Plus URL scheme can name any
+  # ffmpeg-readable input directly:
+  #     - { channel: 9, name: "Gate (3rd party)", source: "rtsp://10.20.1.80/live" }
+  #     - { channel: 10, name: "Test pattern", source: "testsrc=size=640x480:rate=15", sourceFormat: lavfi }
+  #
+  # Standalone IP cameras (no recorder) - give each its own "site" or mix them in
+  # by setting a per-camera host override:
+  # - id: misc
+  #   name: Standalone cams
+  #   kind: direct
+  #   recorder: { username: admin, password: ${ENV:X}, vendor: cpplus }
+  #   cameras:
+  #     - { channel: 1, name: "Gate cam", host: 10.20.1.51 }
